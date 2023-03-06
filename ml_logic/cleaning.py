@@ -1,43 +1,27 @@
-import os
-import cv2
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 def load_images(folder):
     """
     Enter a folder directory with images to load.
     """
-    images = []
-    for filename in os.listdir(folder):
-        img = cv2.imread(os.path.join(folder, filename))
-        #convert the color from BGR to RGB
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        if img_rgb is not None:
-            images.append(img_rgb)
+    datagen = ImageDataGenerator(rescale = 1. / 255)
+    images = datagen.flow_from_directory(folder,
+                                         target_size = (224, 224),
+                                         color_mode = "rgb",
+                                         batch_size = 32,
+                                         class_mode = "categorical")
     return images
 
-def resize_images(images):
+def train_val_test_generator(images):
     """
-    Resize the images to size (224, 224, 3) and normalize by dividing by 255.
+    Generate the train, validation, and test batches.
     """
-    final_images = []
-    for image in images:
-        #resize each image to (224, 224, 3)
-        resized_image = cv2.resize(image, (224, 224))
-        #normalize each image
-        normalized_image = resized_image / 255
-        final_images.append(normalized_image)
-    return final_images
+    train_directory = "/home/emilyma/code/FlorenceBoutin/GI_disease_detection/raw_data/train"
+    val_directory = "/home/emilyma/code/FlorenceBoutin/GI_disease_detection/raw_data/val"
+    test_directory = "/home/emilyma/code/FlorenceBoutin/GI_disease_detection/raw_data/test"
 
-def create_X_y(images):
-    """
-    From the original dataset, define the X and y.
-    X: cleaned images for normal, ulcerative colitis, and polyps
-    y: classification for normal (0), ulcerative colitis (1), and polyps (2)
-    """
-    pass
+    train_generator = load_images(train_directory)
+    val_generator = load_images(val_directory)
+    test_generator = load_images(test_directory)
 
-def clean_images(folder):
-    images = load_images(folder)
-    resized_images = resize_images(images)
-    X, y = create_X_y(resized_images)
-
-    return X, y
+    return train_generator, val_generator, test_generator
