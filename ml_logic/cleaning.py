@@ -12,16 +12,17 @@ def load_images(folder):
                                          class_mode = "categorical")
     return images
 
-def train_val_test_generator(images):
+def train_val_test_generator(folder):
     """
     Generate the train, validation, and test batches.
     """
+    #the directories need to be updated once we have the data in the cloud
     train_directory = "/home/emilyma/code/FlorenceBoutin/GI_disease_detection/raw_data/train"
     val_directory = "/home/emilyma/code/FlorenceBoutin/GI_disease_detection/raw_data/val"
     test_directory = "/home/emilyma/code/FlorenceBoutin/GI_disease_detection/raw_data/test"
 
-    train_generator = load_images(train_directory)
-    val_generator = load_images(val_directory)
-    test_generator = load_images(test_directory)
+    train_dataset = load_images(train_directory)
+    val_dataset = load_images(val_directory)
+    test_dataset = load_images(test_directory)
 
-    return train_generator, val_generator, test_generator
+    return train_dataset, val_dataset, test_dataset
