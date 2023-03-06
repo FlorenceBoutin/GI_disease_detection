@@ -8,6 +8,7 @@ def load_images(folder):
     images = []
     for filename in os.listdir(folder):
         img = cv2.imread(os.path.join(folder, filename))
+        #convert the color from BGR to RGB
         img_rgb = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         if img_rgb is not None:
             images.append(img_rgb)
@@ -19,7 +20,9 @@ def resize_images(images):
     """
     final_images = []
     for image in images:
+        #resize each image to (224, 224, 3)
         resized_image = cv2.resize(image, (224, 224))
+        #normalize each image
         normalized_image = resized_image / 255
         final_images.append(normalized_image)
     return final_images
