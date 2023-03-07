@@ -1,1 +1,2 @@
 tensorflow
+google-cloud-storage
