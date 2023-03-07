@@ -1,1 +1,7 @@
+streamlit
+pandas
+requests
+fastapi
+uvicorn
 tensorflow
+
