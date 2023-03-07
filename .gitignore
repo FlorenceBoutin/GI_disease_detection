@@ -1,3 +1,5 @@
 raw_data/
 .env
 .python-version
+.ipynb_checkpoints/
+Data Labelling.ipynb
