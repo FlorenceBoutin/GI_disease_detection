@@ -3,7 +3,7 @@ from ml_logic.cleaning import train_val_test_generator
 from ml_logic.model import *
 from ml_logic.registry import *
 
-def train(data_path,
+def train(data_path, registry_path,
           learning_rate=0.001,
           patience = 5) -> float:
     """
@@ -40,10 +40,10 @@ def train(data_path,
     )
 
     # Save results on hard drive using taxifare.ml_logic.registry
-    save_results(metrics=metrics)
+    save_results(metrics=metrics, registry_path=registry_path)
 
     # Save model weight on hard drive (and optionally on GCS too!)
-    save_model(model=model)
+    save_model(model=model, registry_path=registry_path)
 
     print("✅ train() done \n")
     return metrics
