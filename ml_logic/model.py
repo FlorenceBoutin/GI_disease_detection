@@ -1,11 +1,8 @@
 import numpy as np
-import tensorflow as tf
+from tensorflow import keras
 
-from tensorflow.keras import optimizers
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras import models, Model
-from tensorflow.keras import Sequential, layers, optimizers
-from tensorflow.keras.callbacks import EarlyStopping
+from keras import optimizers, Model, Sequential, layers
+from keras.callbacks import EarlyStopping
 
 def dummy_model():
     """
@@ -45,14 +42,40 @@ def initialize_baseline_model(input_shape: tuple) -> Model:
     return model
 
 
-def compile_model(model: Model, learning_rate=0.001) -> Model:
+def compile_baseline_model(model: Model, learning_rate=0.001) -> Model:
     """
     Compile the Neural Network
     """
-    recall = tf.keras.metrics.Recall()
+    recall = keras.metrics.Recall()
     optimizer = optimizers.Adam(learning_rate=learning_rate)
     model.compile(loss='categorical_crossentropy',
                optimizer=optimizer,
                metrics=[recall, 'accuracy'])
 
+    print("✅ model compiled")
     return model
+
+def train_baseline_model(model: Model,
+                         train_data,
+                         validation_data,
+                         patience=5) :
+    """
+    Fit model and return a the tuple (fitted_model, history)
+    """
+
+    es = EarlyStopping(
+        monitor="val_loss",
+        patience=patience,
+        restore_best_weights=True,
+        verbose=0
+    )
+
+    history = model.fit(train_data,
+        validation_data=validation_data,
+        epochs=30,
+        callbacks=[es],
+        verbose=1)
+
+    print(f"✅ model trained with accuracy of {round(np.max(history.history['val_accuracy']), 2)} and a recall of {round(np.max(history.history['val_recall']), 2)}.")
+
+    return model, history
