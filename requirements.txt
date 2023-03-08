@@ -4,4 +4,6 @@ requests
 fastapi
 uvicorn
 tensorflow
-
+google-cloud-storage
+google-auth
+google-auth-oauthlib
