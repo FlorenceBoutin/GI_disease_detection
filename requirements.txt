@@ -1,2 +1,4 @@
 tensorflow
 google-cloud-storage
+google-auth
+google-auth-oauthlib
