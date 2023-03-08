@@ -11,7 +11,7 @@ def dummy_model():
     """
     return 1
 
-def initialize_baseline_model(input_shape: tuple) -> Model:
+def initialize_baseline_model(input_shape=(224, 224, 3)) -> Model:
     """
     Initialize the Neural Network with random weights
     """
