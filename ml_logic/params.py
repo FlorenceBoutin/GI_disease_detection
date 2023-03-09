@@ -2,6 +2,7 @@ import os
 
 # ---------- ENVIRONMENT VARIABLES ----------
 SOURCE = os.environ.get("SOURCE")
+BATCH_SIZE = os.environ.get("BATCH_SIZE")
 RAW_DATA_PATH = os.environ.get("RAW_DATA_PATH")
 
 GCLOUD_PROJECT_ID = os.environ.get("GCLOUD_PROJECT_ID")
