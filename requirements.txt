@@ -3,4 +3,10 @@ pandas
 requests
 fastapi
 uvicorn
-# tensorflow
+tensorflow
+google-cloud-storage
+google-auth
+google-auth-oauthlib
+tqdm
+numpy
+
