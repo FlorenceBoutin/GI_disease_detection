@@ -1,27 +1,41 @@
 from ml_logic.params import *
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import os
+import cv2
 from google.cloud import storage
 from google.oauth2 import service_account
-import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
 def train_val_test_generator(source = SOURCE):
     """
     Generate the train, validation, and test batches.
+    Converts the DirectoryIterator (dataset) from the ImageDataGenerator into
+    X_images, y_target numpy arrays
     """
     def load_images(path):
         """
         Enter a path to load images from.
         """
-        datagen = ImageDataGenerator(rescale = IMAGE_RESCALE_RATIO)
+        datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO))
         images = datagen.flow_from_directory(path,
-                                             target_size = (IMAGE_TARGET_WIDTH, IMAGE_TARGET_HEIGHT),
+                                             target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
                                              color_mode = "rgb",
-                                             batch_size = BATCH_SIZE,
+                                             batch_size = int(BATCH_SIZE),
                                              class_mode = "categorical")
 
         return images
+
+    def convert_to_numpy(DI_dataset):
+        """
+        Converts DirectoryIterator dataset to numpy.array.
+        Before cleaning images
+        """
+        X_images = np.concatenate([DI_dataset.next()[0] for i in range(DI_dataset.__len__())])
+        y_target = np.concatenate([DI_dataset.next()[1] for i in range(DI_dataset.__len__())])
+
+        return X_images, y_target
+
 
     if source == "local":
         train_directory = os.path.join(RAW_DATA_PATH, "train")
@@ -38,32 +52,44 @@ def train_val_test_generator(source = SOURCE):
         val_directory = f"gs://{BUCKET_NAME}/val"
         test_directory = f"gs://{BUCKET_NAME}/test"
 
-    train_dataset = load_images(train_directory)
-    val_dataset = load_images(val_directory)
-    test_dataset = load_images(test_directory)
-
-    train_dataset.reset()
-    X_train, y_train = next(train_dataset)
-    for i in tqdm.tqdm(range(int(train_dataset.n / BATCH_SIZE) - 1)):
-      img, label = next(train_dataset)
-      X_train = np.append(X_train, img, axis = 0)
-      y_train = np.append(y_train, label, axis = 0)
-
-    val_dataset.reset()
-    X_train, y_train = next(val_dataset)
-    for i in tqdm.tqdm(range(int(val_dataset.n / BATCH_SIZE) - 1)):
-      img, label = next(val_dataset)
-      X_val = np.append(X_train, img, axis = 0)
-      y_val = np.append(y_train, label, axis = 0)
-
-    test_dataset.reset()
-    X_train, y_train = next(test_dataset)
-    for i in tqdm.tqdm(range(int(test_dataset.n / BATCH_SIZE) - 1)):
-      img, label = next(test_dataset)
-      X_test = np.append(X_train, img, axis = 0)
-      y_test = np.append(y_train, label, axis = 0)
+    X_train, y_train = convert_to_numpy(load_images(train_directory))
+    X_val, y_val = convert_to_numpy(load_images(val_directory))
+    X_test, y_test = convert_to_numpy(load_images(test_directory))
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
+def preprocess_images(dataset):
+    """
+    Clean the images in the images i.e., X_train, X_val, X_test
+    """
+    def clean_images(image):
+        """
+        Input an image to add a rectangle to cover the green or black box on
+        the resized and normalized image (-1 box)
+        """
+        # Identified ROI in resized and normalized image
+        y1 = 148
+        y2 = 224
+        x1 = 0
+        x2 = 77
+
+        image_clean = cv2.rectangle(image, (x1,y1), (x2,y2),(-1,-1,-1),-1)
+
+        return image_clean
+
+    cleaned_X = []
+
+    for i in range(dataset.shape[0]):
+        cleaned_X.append(clean_images(dataset[i,:,:,:]))
+
+    return cleaned_X
+
 if __name__ == "__main__":
     X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE)
+    print("Data split generated")
+    X_train_clean = preprocess_images(X_train)
+    print("Training images cleaned")
+    X_val_clean = preprocess_images(X_val)
+    print("Val images cleaned")
+    X_test_clean = preprocess_images(X_test)
+    print("finished")
