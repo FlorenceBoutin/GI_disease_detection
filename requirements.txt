@@ -3,4 +3,4 @@ pandas
 requests
 fastapi
 uvicorn
-tensorflow
+# tensorflow
