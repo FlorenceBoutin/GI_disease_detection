@@ -39,7 +39,6 @@ def train_val_test_generator(source = SOURCE):
 
         return X_images, y_target
 
-
     if source == "local":
         train_directory = os.path.join(RAW_DATA_PATH, "train")
         val_directory = os.path.join(RAW_DATA_PATH, "val")
@@ -95,7 +94,6 @@ def convert_numpy_to_TFDataset(X, y):
         dataset = Dataset.from_tensor_slices((X,y)).batch(int(BATCH_SIZE))
 
         return dataset
-
 
 if __name__ == "__main__":
     X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE)
