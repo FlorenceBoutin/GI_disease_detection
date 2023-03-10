@@ -1,5 +1,6 @@
 from ml_logic.params import *
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.data import Dataset
 import os
 import cv2
 from google.cloud import storage
@@ -26,11 +27,13 @@ def train_val_test_generator(source = SOURCE):
 
         return images
 
-    def convert_to_numpy(DI_dataset):
+    def convert_DI_to_numpy(DI_dataset):
         """
         Converts DirectoryIterator dataset to numpy.array.
         Before cleaning images
         """
+
+        # DI_dataset.reset()
         X_images = np.concatenate([DI_dataset.next()[0] for i in range(DI_dataset.__len__())])
         y_target = np.concatenate([DI_dataset.next()[1] for i in range(DI_dataset.__len__())])
 
@@ -52,9 +55,9 @@ def train_val_test_generator(source = SOURCE):
         val_directory = f"gs://{BUCKET_NAME}/val"
         test_directory = f"gs://{BUCKET_NAME}/test"
 
-    X_train, y_train = convert_to_numpy(load_images(train_directory))
-    X_val, y_val = convert_to_numpy(load_images(val_directory))
-    X_test, y_test = convert_to_numpy(load_images(test_directory))
+    X_train, y_train = convert_DI_to_numpy(load_images(train_directory))
+    X_val, y_val = convert_DI_to_numpy(load_images(val_directory))
+    X_test, y_test = convert_DI_to_numpy(load_images(test_directory))
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
@@ -84,12 +87,28 @@ def preprocess_images(dataset):
 
     return cleaned_X
 
+def convert_numpy_to_TFDataset(X, y):
+        """
+        Converts numpy.array back to TF format but this time a TF dataset.
+        Before training model
+        """
+        dataset = Dataset.from_tensor_slices((X,y)).batch(int(BATCH_SIZE))
+
+        return dataset
+
+
 if __name__ == "__main__":
     X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE)
     print("Data split generated")
-    X_train_clean = preprocess_images(X_train)
-    print("Training images cleaned")
-    X_val_clean = preprocess_images(X_val)
-    print("Val images cleaned")
+    # X_train_clean = preprocess_images(X_train)
+    # print("Training images cleaned")
+    # X_val_clean = preprocess_images(X_val)
+    # print("Val images cleaned")
     X_test_clean = preprocess_images(X_test)
     print("finished")
+
+    test_cleaned = convert_numpy_to_TFDataset(X_test, y_test)
+    print("converted array back to TF")
+    element_spec_X, element_spec_y = test_cleaned.element_spec
+    print(element_spec_X.shape)
+    print(element_spec_y.shape)
