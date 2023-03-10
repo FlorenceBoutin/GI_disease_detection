@@ -88,7 +88,7 @@ def preprocess_images(X: np.array):
         """
         Input an image to add a rectangle to cover the green or black box on the resized and normalized image (-1 box).
         """
-        # Identified ROI in resized and normalized image
+        # Identified ROI for specific corner box in resized and normalized image
         y1 = 148
         y2 = 224
         x1 = 0
