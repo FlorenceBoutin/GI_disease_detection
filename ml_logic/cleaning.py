@@ -14,7 +14,7 @@ def train_val_test_generator(source = SOURCE):
     Converts the DirectoryIterator (dataset) from the ImageDataGenerator into
     X_images, y_target numpy arrays
     """
-    def load_images(path):
+    def load_images(path, class_mode="categorical"):
         """
         Enter a path to load images from.
         """
@@ -23,7 +23,7 @@ def train_val_test_generator(source = SOURCE):
                                              target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
                                              color_mode = "rgb",
                                              batch_size = int(BATCH_SIZE),
-                                             class_mode = "categorical")
+                                             class_mode = class_mode)
 
         return images
 
@@ -55,9 +55,9 @@ def train_val_test_generator(source = SOURCE):
         val_directory = f"gs://{BUCKET_NAME}/val"
         test_directory = f"gs://{BUCKET_NAME}/test"
 
-    X_train, y_train = convert_DI_to_numpy(load_images(train_directory))
-    X_val, y_val = convert_DI_to_numpy(load_images(val_directory))
-    X_test, y_test = convert_DI_to_numpy(load_images(test_directory))
+    X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode="categorical"))
+    X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode="categorical"))
+    X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode="categorical"))
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
