@@ -1,6 +1,5 @@
 from ml_logic.params import *
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.data import Dataset
 import os
 import cv2
 from google.cloud import storage
@@ -14,7 +13,7 @@ def train_val_test_generator(source = SOURCE):
     Converts the DirectoryIterator (dataset) from the ImageDataGenerator into
     X_images, y_target numpy arrays
     """
-    def load_images(path, class_mode="categorical"):
+    def load_images(path):
         """
         Enter a path to load images from.
         """
@@ -23,21 +22,20 @@ def train_val_test_generator(source = SOURCE):
                                              target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
                                              color_mode = "rgb",
                                              batch_size = int(BATCH_SIZE),
-                                             class_mode = class_mode)
+                                             class_mode = "categorical")
 
         return images
 
-    def convert_DI_to_numpy(DI_dataset):
+    def convert_to_numpy(DI_dataset):
         """
         Converts DirectoryIterator dataset to numpy.array.
         Before cleaning images
         """
-
-        # DI_dataset.reset()
         X_images = np.concatenate([DI_dataset.next()[0] for i in range(DI_dataset.__len__())])
         y_target = np.concatenate([DI_dataset.next()[1] for i in range(DI_dataset.__len__())])
 
         return X_images, y_target
+
 
     if source == "local":
         train_directory = os.path.join(RAW_DATA_PATH, "train")
@@ -54,9 +52,9 @@ def train_val_test_generator(source = SOURCE):
         val_directory = f"gs://{BUCKET_NAME}/val"
         test_directory = f"gs://{BUCKET_NAME}/test"
 
-    X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode="categorical"))
-    X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode="categorical"))
-    X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode="categorical"))
+    X_train, y_train = convert_to_numpy(load_images(train_directory))
+    X_val, y_val = convert_to_numpy(load_images(val_directory))
+    X_test, y_test = convert_to_numpy(load_images(test_directory))
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
@@ -86,27 +84,36 @@ def preprocess_images(dataset):
 
     return cleaned_X
 
-def convert_numpy_to_TFDataset(X, y):
-        """
-        Converts numpy.array back to TF format but this time a TF dataset.
-        Before training model
-        """
-        dataset = Dataset.from_tensor_slices((X,y)).batch(int(BATCH_SIZE))
+    # X_train_clean = []
+    # X_val_clean = []
+    # X_test_clean = []
 
-        return dataset
+    # # Iterate over the images within the datasets
+    # for i in range(dataset.shape[0]):
+    #     X_train_clean.append(clean_images(dataset[i,:,:,:]))
+
+    # for i in range(dataset.shape[0]):
+    #     X_val_clean.append(clean_images(dataset[i,:,:,:]))
+
+# np.array(X_train_clean), np.array(X_val_clean), np.array(X_test_clean)
 
 if __name__ == "__main__":
     X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE)
     print("Data split generated")
-    # X_train_clean = preprocess_images(X_train)
-    # print("Training images cleaned")
-    # X_val_clean = preprocess_images(X_val)
-    # print("Val images cleaned")
+    X_train_clean = preprocess_images(X_train)
+    print("Training images cleaned")
+    X_val_clean = preprocess_images(X_val)
+    print("Val images cleaned")
     X_test_clean = preprocess_images(X_test)
     print("finished")
 
-    test_cleaned = convert_numpy_to_TFDataset(X_test, y_test)
-    print("converted array back to TF")
-    element_spec_X, element_spec_y = test_cleaned.element_spec
-    print(element_spec_X.shape)
-    print(element_spec_y.shape)
+
+
+    # fig, axs = plt.subplots(2)
+    # axs[0].imshow(X_test[0])
+
+    # X_test_clean = preprocess_images(X_test)
+    # print(X_test_clean.shape)
+
+    # axs[1].imshow(X_test_clean[0])
+    # plt.show()
