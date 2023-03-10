@@ -13,6 +13,7 @@ def train_val_test_generator(source = SOURCE):
     Generate the train, validation, and test batches.
     Converts the DirectoryIterator (dataset) from the ImageDataGenerator into
     X_images, y_target numpy arrays
+    Note: class_mode is for load_images and needs to be specified where appropriate
     """
     def load_images(path, class_mode="categorical"):
         """
@@ -30,10 +31,10 @@ def train_val_test_generator(source = SOURCE):
     def convert_DI_to_numpy(DI_dataset):
         """
         Converts DirectoryIterator dataset to numpy.array.
-        Before cleaning images
+        So that we can clean images
         """
 
-        # DI_dataset.reset()
+        # DI_dataset.reset() # Still need to check why or if we need to reset here
         X_images = np.concatenate([DI_dataset.next()[0] for i in range(DI_dataset.__len__())])
         y_target = np.concatenate([DI_dataset.next()[1] for i in range(DI_dataset.__len__())])
 
@@ -60,16 +61,16 @@ def train_val_test_generator(source = SOURCE):
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
-def preprocess_images(dataset):
+def preprocess_images(X_dataset):
     """
-    Clean the images in the images i.e., X_train, X_val, X_test
+    Clean the images in numpy.array format of e.g., X_train, X_val, X_test
     """
     def clean_images(image):
         """
         Input an image to add a rectangle to cover the green or black box on
         the resized and normalized image (-1 box)
         """
-        # Identified ROI in resized and normalized image
+        # Identified ROI for specific corner box in resized and normalized image
         y1 = 148
         y2 = 224
         x1 = 0
@@ -81,15 +82,15 @@ def preprocess_images(dataset):
 
     cleaned_X = []
 
-    for i in range(dataset.shape[0]):
-        cleaned_X.append(clean_images(dataset[i,:,:,:]))
+    for i in range(X_dataset.shape[0]):
+        cleaned_X.append(clean_images(X_dataset[i,:,:,:]))
 
     return cleaned_X
 
 def convert_numpy_to_TFDataset(X, y):
         """
-        Converts numpy.array back to TF format but this time a TF dataset.
-        Before training model
+        Converts numpy.array back to TF format but this time as a TF dataset.
+        Model uses TF
         """
         dataset = Dataset.from_tensor_slices((X,y)).batch(int(BATCH_SIZE))
 
