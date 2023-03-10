@@ -3,43 +3,47 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.data import Dataset
 import os
 import cv2
+from imblearn.over_sampling import SMOTE
 from google.cloud import storage
 from google.oauth2 import service_account
 import numpy as np
-import matplotlib.pyplot as plt
 
-def train_val_test_generator(source = SOURCE):
+def load_images(path, class_mode = "categorical"):
     """
-    Generate the train, validation, and test batches.
-    Converts the DirectoryIterator (dataset) from the ImageDataGenerator into
-    X_images, y_target numpy arrays
-    Note: class_mode is for load_images and needs to be specified where appropriate
+    Enter a path to load images from.
+    class_mode should be "categorical" if we are calling this function on data with existing categories.
+    class_mode should be None if we are calling this function on new data.
     """
-    def load_images(path, class_mode="categorical"):
-        """
-        Enter a path to load images from.
-        """
-        datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO))
-        images = datagen.flow_from_directory(path,
-                                             target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
-                                             color_mode = "rgb",
-                                             batch_size = int(BATCH_SIZE),
-                                             class_mode = class_mode)
+    datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO))
+    images = datagen.flow_from_directory(path,
+                                         target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
+                                         color_mode = "rgb",
+                                         batch_size = int(BATCH_SIZE),
+                                         class_mode = class_mode)
 
-        return images
+    return images
 
-    def convert_DI_to_numpy(DI_dataset):
-        """
-        Converts DirectoryIterator dataset to numpy.array.
-        So that we can clean images
-        """
+def convert_DI_to_numpy(dataset):
+    """
+    Converts DirectoryIterator dataset to numpy.array.
+    Returns X and y values for each dataset.
+    """
+    X = np.concatenate([dataset.next()[0] for i in range(dataset.__len__())])
+    y = np.concatenate([dataset.next()[1] for i in range(dataset.__len__())])
 
-        # DI_dataset.reset() # Still need to check why or if we need to reset here
-        X_images = np.concatenate([DI_dataset.next()[0] for i in range(DI_dataset.__len__())])
-        y_target = np.concatenate([DI_dataset.next()[1] for i in range(DI_dataset.__len__())])
+    return X, y
 
-        return X_images, y_target
+def train_val_test_generator(source = SOURCE, class_mode = "categorical", number_of_classes = 2):
+    """
+    If run on existing data, generates the train, validation, and test datasets,
+    and the corresponding X and y for train, validation, and test. Set class_mode to "categorical".
 
+    If run on new data, generates the numpy array for the uploaded image. Set class_mode to None.
+
+    If number_of_classes = 2, apply SMOTE to avoid imbalanced classes (normal vs UC + polyps).
+
+    If number_of_classes = 3, do not apply SMOTE since classes are already balanced (normal vs UC vs polyps).
+    """
     if source == "local":
         train_directory = os.path.join(RAW_DATA_PATH, "train")
         val_directory = os.path.join(RAW_DATA_PATH, "val")
@@ -55,20 +59,34 @@ def train_val_test_generator(source = SOURCE):
         val_directory = f"gs://{BUCKET_NAME}/val"
         test_directory = f"gs://{BUCKET_NAME}/test"
 
-    X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode="categorical"))
-    X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode="categorical"))
-    X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode="categorical"))
+    if class_mode == "categorical":
+        X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode = class_mode))
+        X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode = class_mode))
+        X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode = class_mode))
 
-    return X_train, y_train, X_val, y_val, X_test, y_test
+        #if imbalanced datasets
+        if number_of_classes == 2:
+            oversample = SMOTE()
+            X_train, y_train = oversample.fit_resample(X_train, y_train)
+            X_val, y_val = oversample.fit_resample(X_val, y_val)
+            X_test, y_test = oversample.fit_resample(X_test, y_test)
 
-def preprocess_images(X_dataset):
+        return X_train, y_train, X_val, y_val, X_test, y_test
+
+    #need to figure out how to submit the image
+    #update "new_image_directory" accordingly
+    if class_mode == None:
+        numpy_image = convert_numpy_to_TFDataset(load_images("new_image_directory", class_mode = class_mode))
+
+        return numpy_image
+
+def preprocess_images(X: np.array):
     """
-    Clean the images in numpy.array format of e.g., X_train, X_val, X_test
+    Clean the images in X_train, X_val, and X_test.
     """
-    def clean_images(image):
+    def clean_image(image: np.array):
         """
-        Input an image to add a rectangle to cover the green or black box on
-        the resized and normalized image (-1 box)
+        Input an image to add a rectangle to cover the green or black box on the resized and normalized image (-1 box).
         """
         # Identified ROI for specific corner box in resized and normalized image
         y1 = 148
@@ -76,38 +94,57 @@ def preprocess_images(X_dataset):
         x1 = 0
         x2 = 77
 
-        image_clean = cv2.rectangle(image, (x1,y1), (x2,y2),(-1,-1,-1),-1)
+        image_clean = cv2.rectangle(image, (x1, y1), (x2, y2), (-1, -1, -1), -1)
 
         return image_clean
 
     cleaned_X = []
 
-    for i in range(X_dataset.shape[0]):
-        cleaned_X.append(clean_images(X_dataset[i,:,:,:]))
+    for i in range(X.shape[0]):
+        cleaned_X.append(clean_image(X[i, :, :, :]))
 
     return cleaned_X
 
 def convert_numpy_to_TFDataset(X, y):
-        """
-        Converts numpy.array back to TF format but this time as a TF dataset.
-        Model uses TF
-        """
-        dataset = Dataset.from_tensor_slices((X,y)).batch(int(BATCH_SIZE))
+    """
+    Converts numpy.array back to TF format but this time a TF dataset.
+    """
+    dataset = Dataset.from_tensor_slices((X, y)).batch(int(BATCH_SIZE))
 
-        return dataset
+    return dataset
+
+def pipeline(class_mode = "categorical"):
+    """
+    A pipeline of the entire cleaning process.
+    If existing data, class_mode = "categorical".
+    If new data, class_mode = None.
+    """
+    X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(class_mode = class_mode, number_of_classes = 2)
+
+    preprocessed_train = preprocess_images(X_train)
+    preprocessed_val = preprocess_images(X_val)
+    preprocessed_test = preprocess_images(X_test)
+
+    train_dataset = convert_numpy_to_TFDataset(preprocessed_train, y_train)
+    val_dataset = convert_numpy_to_TFDataset(preprocessed_val, y_val)
+    test_dataset = convert_numpy_to_TFDataset(preprocessed_test, y_test)
+
+    return train_dataset, val_dataset, test_dataset
 
 if __name__ == "__main__":
-    X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE)
-    print("Data split generated")
-    # X_train_clean = preprocess_images(X_train)
-    # print("Training images cleaned")
-    # X_val_clean = preprocess_images(X_val)
-    # print("Val images cleaned")
-    X_test_clean = preprocess_images(X_test)
-    print("finished")
+    pipeline(class_mode = "categorical")
 
-    test_cleaned = convert_numpy_to_TFDataset(X_test, y_test)
-    print("converted array back to TF")
-    element_spec_X, element_spec_y = test_cleaned.element_spec
-    print(element_spec_X.shape)
-    print(element_spec_y.shape)
+    # X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE)
+    # print("Data split generated")
+    # # X_train_clean = preprocess_images(X_train)
+    # # print("Training images cleaned")
+    # # X_val_clean = preprocess_images(X_val)
+    # # print("Val images cleaned")
+    # X_test_clean = preprocess_images(X_test)
+    # print("finished")
+
+    # test_cleaned = convert_numpy_to_TFDataset(X_test, y_test)
+    # print("converted array back to TF")
+    # element_spec_X, element_spec_y = test_cleaned.element_spec
+    # print(element_spec_X.shape)
+    # print(element_spec_y.shape)
