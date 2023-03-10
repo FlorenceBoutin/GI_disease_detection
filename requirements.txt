@@ -4,8 +4,8 @@ requests
 fastapi
 uvicorn
 tensorflow
+imbalanced-learn
 google-cloud-storage
 google-auth
 google-auth-oauthlib
 numpy
-
