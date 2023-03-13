@@ -101,7 +101,8 @@ def preprocess_images(X: np.array):
     cleaned_X = []
 
     for i in range(X.shape[0]):
-        cleaned_X.append(clean_image(X[i, :, :, :]))
+        temp = (clean_image(X[i, :, :, :]))
+        cleaned_X.append(cv2.resize(temp, (50,50))) # resized further to 50 x 50 image
 
     return cleaned_X
 
