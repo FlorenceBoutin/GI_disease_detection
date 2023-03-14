@@ -88,13 +88,15 @@ def preprocess_images(X: np.array):
         """
         Input an image to add a rectangle to cover the green or black box on the resized and normalized image (-1 box).
         """
-        # Identified ROI for specific corner box in resized and normalized image
-        y1 = 148
-        y2 = 224
+        # Identified ROI in resized and normalized image
+        y1 = 66
+        y2 = 100
         x1 = 0
-        x2 = 77
+        x2 = 34
 
-        image_clean = cv2.rectangle(image, (x1, y1), (x2, y2), (-1, -1, -1), -1)
+        image_clean = cv2.rectangle(image, (x1,y1), (x2,y2),(-1,-1,-1),-1)
+        # if want to add border to image
+        image_clean = cv2.copyMakeBorder(image_clean, 10, 10, 10, 10, cv2.BORDER_CONSTANT,value=-1)
 
         return image_clean
 
