@@ -1,11 +1,12 @@
-streamlit
-pandas
-requests
-fastapi
-uvicorn
-tensorflow
-google-cloud-storage
-google-auth
-google-auth-oauthlib
-tqdm
-numpy
+# streamlit
+# pandas
+# requests
+# fastapi
+# uvicorn
+# tensorflow
+# google-cloud-storage
+# google-auth
+# google-auth-oauthlib
+# tqdm
+# numpy
+opencv-python-headless
