@@ -2,6 +2,4 @@ raw_data/
 .env
 .python-version
 .ipynb_checkpoints/
-Data Labelling.ipynb
-test_ux.py
-ux.py
+**/__pycache__/
