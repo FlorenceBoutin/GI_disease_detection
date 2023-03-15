@@ -8,13 +8,26 @@ from google.cloud import storage
 from google.oauth2 import service_account
 import numpy as np
 
-def load_images(path, class_mode = "categorical"):
+def load_images(path, class_mode = "categorical", dataset_type = "train"):
     """
     Enter a path to load images from.
-    class_mode should be "categorical" if we are calling this function on data with existing categories.
-    class_mode should be None if we are calling this function on new data.
+
+    class_mode should be "categorical" when we are training and validating our model.
+    class_mode should be None when we are evaluating and predicting on new data.
+
+    dataset_type will be either "train," "val," or "test."
     """
-    datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO))
+    if dataset_type == "train":
+        datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO),
+                                     rotation_range = int(ROTATION_RANGE),
+                                     shear_range = float(SHEAR_RANGE),
+                                     zoom_range = float(ZOOM_RANGE),
+                                     horizontal_flip = True,
+                                     width_shift_range = float(WIDTH_SHIFT_RANGE),
+                                     height_shift_range = float(HEIGHT_SHIFT_RANGE))
+    if dataset_type == "val" or dataset_type == "test":
+        datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO))
+
     images = datagen.flow_from_directory(path,
                                          target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
                                          color_mode = "rgb",
@@ -33,16 +46,13 @@ def convert_DI_to_numpy(dataset):
 
     return X, y
 
-def train_val_test_generator(source = SOURCE, class_mode = "categorical", number_of_classes = 2):
+def train_val_test_generator(source = SOURCE, class_mode = "categorical"):
     """
-    If run on existing data, generates the train, validation, and test datasets,
-    and the corresponding X and y for train, validation, and test. Set class_mode to "categorical".
+    class_mode should be "categorical" if run on existing data.
+    Generates the train, validation, and test datasets, and the corresponding X and y for train, validation, and test.
 
-    If run on new data, generates the numpy array for the uploaded image. Set class_mode to None.
-
-    If number_of_classes = 2, apply SMOTE to avoid imbalanced classes (normal vs UC + polyps).
-
-    If number_of_classes = 3, do not apply SMOTE since classes are already balanced (normal vs UC vs polyps).
+    class_mode should be None if run on new data.
+    Generates the numpy array for the uploaded image.
     """
     if source == "local":
         train_directory = os.path.join(RAW_DATA_PATH, "train")
@@ -60,16 +70,9 @@ def train_val_test_generator(source = SOURCE, class_mode = "categorical", number
         test_directory = f"gs://{BUCKET_NAME}/test"
 
     if class_mode == "categorical":
-        X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode = class_mode))
-        X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode = class_mode))
-        X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode = class_mode))
-
-        #if imbalanced datasets
-        if number_of_classes == 2:
-            oversample = SMOTE()
-            X_train, y_train = oversample.fit_resample(X_train, y_train)
-            X_val, y_val = oversample.fit_resample(X_val, y_val)
-            X_test, y_test = oversample.fit_resample(X_test, y_test)
+        X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode = class_mode, dataset_type = "train"))
+        X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode = class_mode, dataset_type = "val"))
+        X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode = class_mode, dataset_type = "test"))
 
         return X_train, y_train, X_val, y_val, X_test, y_test
 
@@ -89,12 +92,7 @@ def preprocess_images(X: np.array):
         Input an image to add a rectangle to cover the green or black box on the resized and normalized image (-1 box).
         """
         # Identified ROI for specific corner box in resized and normalized image
-        y1 = 148
-        y2 = 224
-        x1 = 0
-        x2 = 77
-
-        image_clean = cv2.rectangle(image, (x1, y1), (x2, y2), (-1, -1, -1), -1)
+        image_clean = cv2.rectangle(image, (int(BOX_X1), int(BOX_Y1)), (int(BOX_X2), int(BOX_Y2)), (-1, -1, -1), -1)
 
         return image_clean
 
@@ -119,7 +117,7 @@ def pipeline(class_mode = "categorical"):
     If existing data, class_mode = "categorical".
     If new data, class_mode = None.
     """
-    X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(class_mode = class_mode, number_of_classes = 2)
+    X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE, class_mode = class_mode)
 
     preprocessed_train = preprocess_images(X_train)
     preprocessed_val = preprocess_images(X_val)
