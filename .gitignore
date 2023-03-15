@@ -6,4 +6,4 @@ raw_data/
 Data Labelling.ipynb
 test_ux.py
 ux.py
-*/__pycache__/*
+**/__pycache__/*
