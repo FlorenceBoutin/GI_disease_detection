@@ -8,6 +8,8 @@ from google.cloud import storage
 from google.oauth2 import service_account
 import numpy as np
 
+
+=======
 def load_images(path, class_mode = "categorical", dataset_type = "train"):
     """
     Enter a path to load images from.
@@ -28,6 +30,7 @@ def load_images(path, class_mode = "categorical", dataset_type = "train"):
     if dataset_type == "val" or dataset_type == "test":
         datagen = ImageDataGenerator(rescale = float(IMAGE_RESCALE_RATIO))
 
+
     images = datagen.flow_from_directory(path,
                                          target_size = (int(IMAGE_TARGET_WIDTH), int(IMAGE_TARGET_HEIGHT)),
                                          color_mode = "rgb",
@@ -46,6 +49,8 @@ def convert_DI_to_numpy(dataset):
 
     return X, y
 
+
+=======
 def train_val_test_generator(source = SOURCE, class_mode = "categorical"):
     """
     class_mode should be "categorical" if run on existing data.
@@ -53,6 +58,7 @@ def train_val_test_generator(source = SOURCE, class_mode = "categorical"):
 
     class_mode should be None if run on new data.
     Generates the numpy array for the uploaded image.
+
     """
     if source == "local":
         train_directory = os.path.join(RAW_DATA_PATH, "train")
@@ -70,9 +76,11 @@ def train_val_test_generator(source = SOURCE, class_mode = "categorical"):
         test_directory = f"gs://{BUCKET_NAME}/test"
 
     if class_mode == "categorical":
+
         X_train, y_train = convert_DI_to_numpy(load_images(train_directory, class_mode = class_mode, dataset_type = "train"))
         X_val, y_val = convert_DI_to_numpy(load_images(val_directory, class_mode = class_mode, dataset_type = "val"))
         X_test, y_test = convert_DI_to_numpy(load_images(test_directory, class_mode = class_mode, dataset_type = "test"))
+
 
         return X_train, y_train, X_val, y_val, X_test, y_test
 
@@ -92,7 +100,9 @@ def preprocess_images(X: np.array):
         Input an image to add a rectangle to cover the green or black box on the resized and normalized image (-1 box).
         """
         # Identified ROI for specific corner box in resized and normalized image
+
         image_clean = cv2.rectangle(image, (int(BOX_X1), int(BOX_Y1)), (int(BOX_X2), int(BOX_Y2)), (-1, -1, -1), -1)
+
 
         return image_clean
 
@@ -118,7 +128,9 @@ def pipeline(class_mode = "categorical"):
     If existing data, class_mode = "categorical".
     If new data, class_mode = None.
     """
+
     X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_generator(source = SOURCE, class_mode = class_mode)
+
 
     preprocessed_train = preprocess_images(X_train)
     preprocessed_val = preprocess_images(X_val)
