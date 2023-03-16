@@ -3,7 +3,7 @@ pandas
 requests
 fastapi
 uvicorn
-tensorflow
+tensorflow == 2.9.3
 imbalanced-learn
 google-cloud-storage
 google-auth
