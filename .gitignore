@@ -1,7 +1,10 @@
 raw_data/
 .env
+.envrc
 .python-version
 .ipynb_checkpoints/
-**/__pycache__/
-models/**
-raw_data/**
+Data Labelling.ipynb
+test_ux.py
+ux.py
+**/__pycache__/*
+
