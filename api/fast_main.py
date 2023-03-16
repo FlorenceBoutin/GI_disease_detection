@@ -22,7 +22,7 @@ app.add_middleware(
     )
 
 #Load the trained model
-model = models.load_model("../models/EfficientNetB5")
+model = models.load_model("YOUR_MODEL_HERE")
 
 # Define the image size
 img_size = (128, 128)
