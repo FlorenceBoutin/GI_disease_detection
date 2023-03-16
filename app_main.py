@@ -6,14 +6,12 @@ import base64
 
 url = 'https://final-model-2-nfkry3aggq-ez.a.run.app'
 
-st.set_page_config(layout="wide", page_title="GI Tract Image Classifier")
+st.set_page_config(layout="wide", page_title="Digestive Disease Image Classifier")
 
-st.write("## GI Tract Image Classifier ")
-st.write("### Upload an image to evaluate potential diseased tissue.")
-st.sidebar.write("## About our model")
-st.sidebar.write("EfficientNetB2 is a Convolutional Neural Network with predicted accuracy of 97% for Ulcerative colitis and 81% for polys")
+st.write("## Digestive Disease Image Classifier")
 
-img_file_buffer = st.file_uploader('Upload an image')
+
+img_file_buffer = st.file_uploader("Upload an image.")
 
 
 if img_file_buffer is not None:
@@ -33,7 +31,7 @@ if img_file_buffer is not None:
       res = requests.post(url + "/upload_image", files={'img': img_bytes})
 
       if res.status_code == 200:
-        st.write("### Image received by server!")
+        st.write(" Image received by server!")
         # Extract the JSON response
         json_data = res.json()
         # st.write(json_data)
@@ -43,9 +41,9 @@ if img_file_buffer is not None:
         prediction_polyps = json_data["prediction"]["2"]
 
         # Print the prediction value
-        a = f"## Probability of Normal: {round(prediction_normal*100,2)}%"
-        b = f"## Probability of UC: {round(prediction_uc*100,2)}%"
-        c = f"## Probability of Polyps: {round(prediction_polyps*100,2)}%"
+        a = f"### Probability of Normal: {round(prediction_normal*100,2)}%"
+        b = f"### Probability of UC: {round(prediction_uc*100,2)}%"
+        c = f"### Probability of Polyps: {round(prediction_polyps*100,2)}%"
 
         st.write(a)
         st.write(b)
