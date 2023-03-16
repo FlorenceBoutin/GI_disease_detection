@@ -1,0 +1,7 @@
+raw_data/
+.env
+.python-version
+.ipynb_checkpoints/
+**/__pycache__/
+models/**
+raw_data/**
